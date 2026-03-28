@@ -25,19 +25,41 @@ import gvsoc.systree as st
 from pulp.snitch.sequencer import Sequencer
 from pulp.mempool.l1_interconnect.l1_address_scrambler import L1_AddressScrambler
 
+from pulp.light_redmule.light_redmule import LightRedmule
+from utils.common_cells import Or
+
 class Tile(st.Component):
 
     def __init__(self, parent, name, parser, terapool: bool=False, async_l1_interco: bool=False, tile_id: int=0, sub_group_id: int=0, group_id: int=0, nb_cores_per_tile: int=4, nb_sub_groups_per_group: int=1, nb_groups: int=4, total_cores: int= 256, bank_factor: int=4, axi_data_width: int=64):
         super().__init__(parent, name)
 
+    #add new parameter has_redmule: bool=false?
+        has_redmule = True
+        
+        if has_redmule:
+            # REDMULE
+            #redmule = LightRedmule(self, 'redmule')
+            redmule = LightRedmule(self, f'tile-{tile_id}-redmule',
+                                    tcdm_bank_width     = 128,
+                                    tcdm_bank_number    = 128,
+                                    elem_size           = 2,
+                                    ce_height           = 128,
+                                    ce_width            = 32,
+                                    ce_pipe             = 3,
+                                    queue_depth         = 128 #tried 1 first here, could do it still?
+                                    #loc_base            = xxx
+                                    )
+
         [args, __] = parser.parse_known_args()
 
-        # Set it to true to swtich to snitch new fast model
+        # Set it to true to switch to snitch new fast model
         fast_model = True
 
         ################################################################
         ##########               Design Variables             ##########
         ################################################################
+
+
         # Hardware parameters
         nb_remote_group_ports = nb_groups - 1
         nb_remote_sub_group_ports = nb_sub_groups_per_group - 1
@@ -115,6 +137,10 @@ class Tile(st.Component):
             ico_list[i].add_mapping('l1', base=0x00000000, remove_offset=0x00000000, size=total_cores * bank_factor * 1024)
             self.bind(ico_list[i], 'l1', l1, f'pe_in{i}')
 
+        # Core 0 --> Redmule
+        ico_list[0].add_mapping('redmule_config', base=0x40020000, remove_offset=0x40020000, size=0x200)
+        self.bind(ico_list[0], 'redmule_config', redmule, 'input')
+
         # L1 TCDM --> Remote TCDM interfaces
         self.bind(self, 'loc_remt_slave_in', l1, 'remote_local_in0')
         self.bind(l1, 'remote_local_out0', self, 'loc_remt_master_out')
@@ -148,9 +174,27 @@ class Tile(st.Component):
         # AXI -> Remote AXI port
         self.bind(axi_ico, 'output', self, 'axi_out')
 
-        # Sync barrier
-        for core_id in range(0, nb_cores_per_tile):
+        # Sync barrier, change from 0 to 1
+        for core_id in range(1, nb_cores_per_tile):#not including core 0 anymore
             self.bind(self, f'barrier_ack_{core_id}', self.int_cores[core_id], 'barrier_ack')
+
+        redmule_interrupt = Or(self, 'barrier_ack_OR_IRQ', nb_input=2) #only two inputs are either barr_ack or IRQ from redmule
+        #sync_barrier --> redmule_interrupt
+        self.bind(self, 'barrier_ack_0', redmule_interrupt, 'input_0')
+        #self.bind(self, 'barrier_ack_0', redmule_interrupt, 'input_1')
+        #self.bind(redmule_interrupt, 'output', self.int_cores[0], 'barrier_ack')
+
+        #redmules IRQ --> redmule_interrupt
+        self.bind(redmule, 'done_irq', redmule_interrupt, 'input_1')
+
+        #redmule_interrupt --> core 0
+        self.bind(redmule_interrupt, 'output', self.int_cores[0], 'barrier_ack')
+        
+        #redmule_interrupt.o_OUTPUT(st.SlaveItf(self, 'barrier_ack', signature='wire<bool>')() )
+        #redmule_interrupt.itfbind(redmule_interrupt, 'output', self.int_cores[0], 'barrier_ack')
+        #redmule_interrupt.o_OUTPUT( self.__i_FLUSH_ACK() )
+        #print(redmule_interrupt.o_OUTPUT( self.__i_FLUSH_ACK() ))
+
 
         # Core Interconnections
         for core_id in range(0, nb_cores_per_tile):
@@ -189,3 +233,9 @@ class Tile(st.Component):
                     self.bind(self.int_cores[core_id], 'acc_req_ready', self.fp_cores[core_id], 'acc_req_ready')
 
                 self.bind(self.fp_cores[core_id], 'acc_rsp', self.int_cores[core_id], 'acc_rsp')
+
+
+
+    #def __i_FLUSH_ACK(self) -> st.SlaveItf:
+    #    return st.SlaveItf(self, 'redmule_interrupt', signature='wire<bool>')
+    #would be needed for: #redmule_interrupt.o_OUTPUT( self.__i_FLUSH_ACK() )

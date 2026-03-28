@@ -52,7 +52,7 @@ class LightRedmule(gvsoc.systree.Component):
             'fold_tiles_mapping': fold_tiles_mapping,
             'loc_base'          : loc_base,
         })
-
+    #connected input already
     def i_INPUT(self) -> gvsoc.systree.SlaveItf:
         return gvsoc.systree.SlaveItf(self, 'input', signature='io')
 
@@ -80,9 +80,10 @@ class LightRedmule(gvsoc.systree.Component):
             Slave interface
         """
         self.itf_bind('offload_grant', itf, signature='wire<IssOffloadInsnGrant<uint32_t>*>')
-
+    
     def o_TCDM(self, itf: gvsoc.systree.SlaveItf):
         self.itf_bind('tcdm', itf, signature='io')
 
+    #connected irq already
     def o_IRQ(self, itf: gvsoc.systree.SlaveItf):
         self.itf_bind('done_irq', itf, signature='wire<bool>')
