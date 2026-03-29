@@ -101,11 +101,12 @@ class L1_subsystem(gvsoc.systree.Component):
                                              interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
         #initialise the AMAX's with 2 masters for both local interleaver and redmule interleaver
         #I went with just 1 master for now, since the remove_offset does the same and seemingly still seperates everything
-        AMAX_RemoteGroup = Interleaver(self, 'AMAX_RemoteGroup', nb_slaves=total_banks, nb_masters=1, 
+        #nope back to multiple masters again
+        AMAX_RemoteGroup = Interleaver(self, 'AMAX_RemoteGroup', nb_slaves=total_banks, nb_masters=5, 
                                              interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
-        AMAX_RemoteSubGroup = Interleaver(self, 'AMAX_RemoteSubGroup', nb_slaves=total_banks, nb_masters=1, 
+        AMAX_RemoteSubGroup = Interleaver(self, 'AMAX_RemoteSubGroup', nb_slaves=total_banks, nb_masters=5, 
                                              interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
-        AMAX_RemoteLocal = Interleaver(self, 'AMAX_RemoteLocal', nb_slaves=total_banks, nb_masters=1, 
+        AMAX_RemoteLocal = Interleaver(self, 'AMAX_RemoteLocal', nb_slaves=total_banks, nb_masters=2, 
                                              interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
         
         remote_local_interleavers = []
@@ -273,23 +274,24 @@ class L1_subsystem(gvsoc.systree.Component):
             #add AMAX for these that do not belong to the same tile:
             elif tgt_grp_id == group_id:
                 if tgt_sg_id == sub_group_id:
+                    #one redmule core connected to the AMAX and then proceed with "4" tile cores in for loop:
+                    self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteLocal, 'in_0')
                     for j, local_interleaver in enumerate(local_interleavers):
                         #self.bind(local_interleaver, 'out_%d' % i, remote_local_output_selectors[j][0] if async_l1_interco else remote_local_out_interfaces[0], 'input')
-                        self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteLocal, 'in_0')
-                        self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteLocal, 'in_0')
-                        self.bind(AMAX_RemoteLocal, 'out_%d' % j, remote_local_output_selectors[j][0] if async_l1_interco else remote_local_out_interfaces[0], 'input')
+                        self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteLocal, 'in_1')
+                        self.bind(AMAX_RemoteLocal, 'out_%d' % i, remote_local_output_selectors[j][0] if async_l1_interco else remote_local_out_interfaces[0], 'input')
                 else:
+                    self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteSubGroup, 'in_0')
                     for j, local_interleaver in enumerate(local_interleavers):
                         #self.bind(local_interleaver, 'out_%d' % i, remote_sub_group_output_selectors[j][(tgt_sg_id ^ sub_group_id) - 1] if async_l1_interco else remote_sub_group_out_interfaces[(tgt_sg_id ^ sub_group_id) - 1], 'input')
-                        self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteSubGroup, 'in_0')
-                        self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteSubGroup, 'in_0')
-                        self.bind(AMAX_RemoteSubGroup, 'out_%d' % j, remote_sub_group_output_selectors[j][(tgt_sg_id ^ sub_group_id) - 1] if async_l1_interco else remote_sub_group_out_interfaces[(tgt_sg_id ^ sub_group_id) - 1], 'input')
+                        self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteSubGroup, f'in_{j+1}')
+                        self.bind(AMAX_RemoteSubGroup, 'out_%d' % i, remote_sub_group_output_selectors[j][(tgt_sg_id ^ sub_group_id) - 1] if async_l1_interco else remote_sub_group_out_interfaces[(tgt_sg_id ^ sub_group_id) - 1], 'input')
             else:
+                self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteGroup, 'in_0')
                 for j, local_interleaver in enumerate(local_interleavers):
                     #self.bind(local_interleaver, 'out_%d' % i, remote_group_output_selectors[j][(tgt_grp_id ^ group_id) - 1] if async_l1_interco else remote_group_out_interfaces[(tgt_grp_id ^ group_id) - 1], 'input')
-                    self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteGroup, 'in_0')
-                    self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteGroup, 'in_0')
-                    self.bind(AMAX_RemoteGroup, 'out_%d' % j, remote_group_output_selectors[j][(tgt_grp_id ^ group_id) - 1] if async_l1_interco else remote_group_out_interfaces[(tgt_grp_id ^ group_id) - 1], 'input')
+                    self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteGroup, f'in_{j+1}')
+                    self.bind(AMAX_RemoteGroup, 'out_%d' % i, remote_group_output_selectors[j][(tgt_grp_id ^ group_id) - 1] if async_l1_interco else remote_group_out_interfaces[(tgt_grp_id ^ group_id) - 1], 'input')
                     
 
     def i_DMA_INPUT(self) -> gvsoc.systree.SlaveItf:
