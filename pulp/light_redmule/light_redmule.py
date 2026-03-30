@@ -80,7 +80,7 @@ class LightRedmule(gvsoc.systree.Component):
             Slave interface
         """
         self.itf_bind('offload_grant', itf, signature='wire<IssOffloadInsnGrant<uint32_t>*>')
-    
+    #is this connected yet? 
     def o_TCDM(self, itf: gvsoc.systree.SlaveItf):
         self.itf_bind('tcdm', itf, signature='io')
 

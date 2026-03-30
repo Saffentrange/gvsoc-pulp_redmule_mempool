@@ -43,8 +43,8 @@ class Tile(st.Component):
                                     tcdm_bank_width     = 128,
                                     tcdm_bank_number    = 128,
                                     elem_size           = 2,
-                                    ce_height           = 128,
-                                    ce_width            = 32,
+                                    ce_height           = 4,
+                                    ce_width            = 4,
                                     ce_pipe             = 3,
                                     queue_depth         = 128 #tried 1 first here, could do it still?
                                     #loc_base            = xxx
@@ -140,6 +140,8 @@ class Tile(st.Component):
         # Core 0 --> Redmule
         ico_list[0].add_mapping('redmule_config', base=0x40020000, remove_offset=0x40020000, size=0x200)
         self.bind(ico_list[0], 'redmule_config', redmule, 'input')
+        #new addition?:
+        self.bind(redmule, 'tcdm', l1, 'redmule_interleaver')
 
         # L1 TCDM --> Remote TCDM interfaces
         self.bind(self, 'loc_remt_slave_in', l1, 'remote_local_in0')
