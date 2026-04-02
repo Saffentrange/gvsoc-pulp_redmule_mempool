@@ -24,4 +24,4 @@ tests/rv64/riscv-tests/
 tests/siracusa/pulp-sdk-siracusa/
 tests/pulp-nn/
 venv310/
-Python-3.10.14/
+Python-3.10.14/*.log
