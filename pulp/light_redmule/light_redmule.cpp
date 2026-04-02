@@ -320,6 +320,7 @@ LightRedmule::LightRedmule(vp::ComponentConf &config)
 }
 
 void LightRedmule::init_redmule_meta_data(){
+    this->trace.msg("[LightRedmule] start metadata\n");
     uint32_t buffer_h = this->ce_height;
     uint32_t buffer_w = this->ce_width * (this->ce_pipe + 1);
     uint32_t buffer_n = this->bandwidth / this->elem_size;
@@ -360,9 +361,11 @@ void LightRedmule::init_redmule_meta_data(){
     this->iter_z_row_ptr = 0;
 
     this->ideal_runtime = 1.0 * (this->m_size * this->n_size * this->k_size)/( 1.0 * this->ce_height * this->ce_width);
+    this->trace.msg("[LightRedmule] Metadata complete\n");
 }
 
 uint32_t LightRedmule::next_iteration(){
+    this->trace.msg("[LightRedmule] start next_iteration function\n");
     this->iter_k += 1;
     if (this->iter_k == this->x_row_tiles)
     {
@@ -388,6 +391,7 @@ uint32_t LightRedmule::calculate_tile_base_address(uint32_t base, uint32_t strid
     *       ----
     *        row
     */
+    this->trace.msg("[LightRedmule] calculate tile base address function\n");
     if (this->fold_tiles_mapping)
     {
         uint32_t tiles_per_row = (stride + tile_row - 1)/tile_row;
@@ -398,6 +402,7 @@ uint32_t LightRedmule::calculate_tile_base_address(uint32_t base, uint32_t strid
 }
 
 uint32_t LightRedmule::inc_addr(uint32_t addr, uint32_t stride, uint32_t tile_row){
+    this->trace.msg("[LightRedmule] inc_addr function gets executed\n");
     if (this->fold_tiles_mapping)
     {
         return addr + tile_row * this->elem_size;
@@ -407,11 +412,13 @@ uint32_t LightRedmule::inc_addr(uint32_t addr, uint32_t stride, uint32_t tile_ro
 }
 
 uint32_t LightRedmule::tmp_next_addr(){
+    this->trace.msg("[LightRedmule] tmp_next_addr function is getting executed\n");
     this->z_addr = (this->z_addr + this->bandwidth) % (this->ce_height * this->bandwidth);
     return this->z_addr;
 }
 
 uint32_t LightRedmule::next_addr(){
+    this->trace.msg("[LightRedmule] next addr function\n");
     uint32_t addr       = 0;
     uint32_t buffer_h   = this->ce_height;
     uint32_t buffer_w   = this->ce_width * (this->ce_pipe + 1);
@@ -467,6 +474,7 @@ uint32_t LightRedmule::next_addr(){
 }
 
 void LightRedmule::process_compute(){
+    this->trace.msg("[LightRedmule] start process compute\n");
     uint32_t buffer_h           = this->ce_height;
     uint32_t buffer_w           = this->ce_width * (this->ce_pipe + 1);
     uint32_t buffer_n           = this->bandwidth / this->elem_size;
@@ -553,7 +561,7 @@ void LightRedmule::process_iter_instruction(){
     m_size  |  X    |  Y/Z|
     iter_i  |-------|------
     */
-
+    this->trace.msg("[LightRedmule] start process iter instruction\n");
     uint32_t buffer_h_byte = this->ce_height * this->elem_size;
     uint32_t buffer_n_byte = this->bandwidth;
     uint32_t buffer_w_byte = this->ce_width * (this->ce_pipe + 1) * this->elem_size;
@@ -645,9 +653,11 @@ void LightRedmule::process_iter_instruction(){
         default:
             break;
     }
+    this->trace.msg("[LightRedmule] end of process iter instruction\n");
 }
 
 uint32_t LightRedmule::get_routine_access_block_number(){
+    this->trace.msg("[LightRedmule] start get_routine_access...\n");
     uint32_t total_blocks       = 0;
     uint32_t is_last_iteration  = (this->iter_i == (this->z_col_tiles - 1)) && (this->iter_j == (this->z_row_tiles - 1)) && (this->iter_k == (this->x_row_tiles - 1));
     uint32_t is_first_iteration = (this->iter_i == 0) && (this->iter_j == 0) && (this->iter_k == 0);
@@ -739,6 +749,7 @@ uint32_t LightRedmule::get_routine_access_block_number(){
 }
 
 uint32_t LightRedmule::get_preload_access_block_number(){
+    this->trace.msg("[LightRedmule] start get_preload...\n");
     uint32_t total_blocks       = 0;
     uint32_t tcdms_bw           = this->bandwidth / this->elem_size;
 
@@ -757,6 +768,7 @@ uint32_t LightRedmule::get_preload_access_block_number(){
 }
 
 uint32_t LightRedmule::get_storing_access_block_number(){
+    this->trace.msg("[LightRedmule] start get storing...!\n");
     uint32_t total_blocks       = 0;
     uint32_t buffer_h           = this->ce_height;
     uint32_t buffer_w           = this->ce_width * (this->ce_pipe + 1);
@@ -778,6 +790,7 @@ uint32_t LightRedmule::get_storing_access_block_number(){
 }
 
 uint32_t LightRedmule::get_routine_to_storing_latency(){
+    this->trace.msg("[LightRedmule] start get_routine_to_storing_latency\n");
     return this->ce_width * (this->ce_pipe + 1);
     // return 0;
 }
@@ -818,6 +831,7 @@ uint32_t LightRedmule::op_foramt_parser(uint32_t op_format) {
 void LightRedmule::offload_sync(vp::Block *__this, IssOffloadInsn<uint32_t> *insn)
 {
     LightRedmule *_this = (LightRedmule *)__this;
+    _this->trace.msg("[LightRedmule] start offload_sync...!\n");
     uint32_t opc = insn->opcode & 0x7F;
 
     switch (opc)
@@ -871,6 +885,7 @@ void LightRedmule::offload_sync(vp::Block *__this, IssOffloadInsn<uint32_t> *ins
             break;
         }
     }
+    _this->trace.msg("[LightRedmule] finish offload_sync!\n");
 }
 
 //This is a very basic reg-if tested and suited to work with MAGIA workloads.
@@ -878,15 +893,17 @@ void LightRedmule::offload_sync(vp::Block *__this, IssOffloadInsn<uint32_t> *ins
 vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
 {
     LightRedmule *_this = (LightRedmule *)__this;
+    _this->trace.msg("[LightRedmule] start req\n");
 
     uint64_t offset = req->get_addr();
     uint8_t *data = req->get_data();
     uint64_t size = req->get_size();
     bool is_write = req->get_is_write();
 
-    //_this->trace.msg(vp::Trace::LEVEL_TRACE,"[LightRedmule] access (offset: 0x%x, size: 0x%x, is_write: %d, data:%x)\n", offset, size, is_write, *(uint32_t *)data);
+    _this->trace.msg(vp::Trace::LEVEL_TRACE,"[LightRedmule] access (offset: 0x%x, size: 0x%x, is_write: %d, data:%x)\n", offset, size, is_write, *(uint32_t *)data);
 
     if (is_write == 1) {
+        _this->trace.msg("[LightRedmule] is_write\n");
         uint32_t value = *(uint32_t *)data;
         switch (offset) {
             case 0x00: {
@@ -959,6 +976,7 @@ vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
         }
     }
     else {
+        _this->trace.msg("[LightRedmule] was just a read\n");
         switch (offset) {
             case 0x00:
                 _this->trace.msg(vp::Trace::LEVEL_TRACE,"[LightRedmule] read to INVALID address\n");
@@ -980,6 +998,7 @@ vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
                 _this->trace.msg(vp::Trace::LEVEL_TRACE,"[LightRedmule] read to INVALID address\n");
         }
     }
+    _this->trace.msg("[LightRedmule] finish req\n");
     return vp::IO_REQ_OK;
 }
 
@@ -1047,12 +1066,14 @@ vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
 
 vp::IoReqStatus LightRedmule::send_tcdm_req()
 {
+    this->trace.msg("[LightRedmule] send_tcdm_req\n");
     return this->tcdm_itf.req(this->tcdm_req);
 }
 
 void LightRedmule::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
 {
     LightRedmule *_this = (LightRedmule *)__this;
+    _this->trace.msg("[LightRedmule] start fsm_handler\n");
 
     _this->fsm_timestamp += 1;
 
@@ -1340,6 +1361,7 @@ void LightRedmule::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
         default:
             _this->trace.fatal("[LightRedmule] INVALID RedMule Status: %d\n", _this->state);
     }
+    _this->trace.msg("[LightRedmule] finish fsm_handler\n");
 }
 
 
@@ -1349,6 +1371,7 @@ void LightRedmule::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
 ************************************************************/
 
 void matmul_uint16(uint16_t * z, uint16_t * y, uint16_t * x, uint16_t * w, uint16_t m_size, uint16_t n_size, uint16_t k_size){
+    
     for (int i = 0; i < m_size; ++i)
     {
         for (int j = 0; j < k_size; ++j)
@@ -1363,6 +1386,7 @@ void matmul_uint16(uint16_t * z, uint16_t * y, uint16_t * x, uint16_t * w, uint1
 }
 
 void matmul_int16(int16_t * z, int16_t * y, int16_t * x, int16_t * w, uint16_t m_size, uint16_t n_size, uint16_t k_size){
+   
     for (int i = 0; i < m_size; ++i)
     {
         for (int j = 0; j < k_size; ++j)
@@ -1695,6 +1719,7 @@ fp16 fp16_fma(fp16 a, fp16 b, fp16 c) {
 }
 
 void LightRedmule::matmul_fp16(fp16 * z, fp16 * y, fp16 * x, fp16 * w, uint16_t m_size, uint16_t n_size, uint16_t k_size){
+    this->trace.msg("[LightRedmule] start matmul_fp16\n");
     for (int i = 0; i < m_size; ++i)
     {
         for (int j = 0; j < k_size; ++j)
