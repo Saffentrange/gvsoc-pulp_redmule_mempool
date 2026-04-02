@@ -25,3 +25,5 @@ tests/siracusa/pulp-sdk-siracusa/
 tests/pulp-nn/
 venv310/
 Python-3.10.14/*.log
+Python-3.10.14/
+*.log
