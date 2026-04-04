@@ -3,7 +3,8 @@
 	url = https://github.com/gvsoc/gvsoc-core.git
 [submodule "pulp"]
 	path = pulp
-	url = https://github.com/gvsoc/gvsoc-pulp.git
+	url = https://github.com/Saffentrange/gvsoc-pulp_redmule_mempool.git
+	branch = redmule_mempool
 [submodule "gvtest"]
 	path = gvtest
 	url =  https://github.com/gvsoc/gvtest.git
