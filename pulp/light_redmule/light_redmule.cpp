@@ -901,6 +901,7 @@ vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
     bool is_write = req->get_is_write();
 
     _this->trace.msg(vp::Trace::LEVEL_TRACE,"[LightRedmule] access (offset: 0x%x, size: 0x%x, is_write: %d, data:%x)\n", offset, size, is_write, *(uint32_t *)data);
+    _this->trace.msg("[LightRedmule] access (offset: 0x%x, size: 0x%x, is_write: %d, data:%x)\n", offset, size, is_write, *(uint32_t *)data);
 
     if (is_write == 1) {
         _this->trace.msg("[LightRedmule] is_write\n");
@@ -1095,6 +1096,7 @@ void LightRedmule::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
                 //Send request
                 vp::IoReqStatus err = _this->send_tcdm_req();
                 _this->trace.msg(vp::Trace::LEVEL_TRACE,"[LightRedmule][Preload] --- Send TCDM req #%d [addr=0x%08x]\n",_this->fsm_counter,temp_addr);
+                _this->trace.msg("[LightRedmule][Preload] --- Send TCDM req #%d [addr=0x%08x]\n",_this->fsm_counter,temp_addr);
 
                 //Check error
                 if (err != vp::IO_REQ_OK) {

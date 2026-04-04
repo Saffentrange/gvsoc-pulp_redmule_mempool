@@ -141,7 +141,7 @@ class Tile(st.Component):
         ico_list[0].add_mapping('redmule_config', base=0x40020000, remove_offset=0x40020000, size=0x200)
         self.bind(ico_list[0], 'redmule_config', redmule, 'input')
         #new addition?:
-        self.bind(redmule, 'tcdm', l1, 'redmule_interleaver')
+        self.bind(redmule, 'tcdm', l1, 'redmule_in')
 
         # L1 TCDM --> Remote TCDM interfaces
         self.bind(self, 'loc_remt_slave_in', l1, 'remote_local_in0')

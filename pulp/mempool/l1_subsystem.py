@@ -204,8 +204,6 @@ class L1_subsystem(gvsoc.systree.Component):
         #Redmule input??
         self.bind(self, f'redmule_in', Redmule_Interleaver, 'in_0')
 
-        #AMAX to combine redmule interleaver with local interleaver for remote access
-
 
         #Remote input
         for i in range(0, nb_remote_local_masters):
