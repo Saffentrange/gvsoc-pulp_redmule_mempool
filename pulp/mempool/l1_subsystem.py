@@ -85,7 +85,6 @@ class L1_subsystem(gvsoc.systree.Component):
             tcdm = Memory(self, 'tcdm_bank%d' % i, size=l1_bank_size, width_log2=int(math.log(bandwidth, 2.0)),
                             latency=1, atomics=True)
             l1_banks.append(tcdm)
-
         if async_l1_interco:
             l1_adapters = []
             for i in range(0, nb_banks_per_tile):
@@ -152,22 +151,23 @@ class L1_subsystem(gvsoc.systree.Component):
                     pe_selector_list.append(MempoolXbarSelector(self, f'remote_group_output_selector_core{i}_out{j}', output_id=j + nb_remote_local_masters + nb_remote_sub_group_masters))
                 remote_group_output_selectors.append(pe_selector_list)
         else:
+            #change max_input_pending_size from 4 to 5 because addition of redmule?
             remote_local_out_interfaces = []
             for i in range(0, nb_remote_local_masters):
                 remote_local_out_interfaces.append(Router(self, f'remote_local_out_itf{i}', bandwidth=bandwidth, latency=1, shared_rw_bandwidth=True, \
-                                                synchronous=False, max_input_pending_size=4))
+                                                synchronous=False, max_input_pending_size=5))
                 remote_local_out_interfaces[i].add_mapping('output')
 
             remote_sub_group_out_interfaces = []
             for i in range(0, nb_remote_sub_group_masters):
                 remote_sub_group_out_interfaces.append(Router(self, f'remote_sub_group_out_itf{i}', bandwidth=bandwidth, latency=1, shared_rw_bandwidth=True, \
-                                                synchronous=False, max_input_pending_size=4))
+                                                synchronous=False, max_input_pending_size=5))
                 remote_sub_group_out_interfaces[i].add_mapping('output')
 
             remote_group_out_interfaces = []
             for i in range(0, nb_remote_group_masters):
                 remote_group_out_interfaces.append(Router(self, f'remote_group_out_itf{i}', bandwidth=bandwidth, latency=1, shared_rw_bandwidth=True, \
-                                                synchronous=False, max_input_pending_size=4))
+                                                synchronous=False, max_input_pending_size=5))
                 remote_group_out_interfaces[i].add_mapping('output')
 
         #Remote interfaces
