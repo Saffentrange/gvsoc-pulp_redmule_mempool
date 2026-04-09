@@ -138,6 +138,7 @@ class Tile(st.Component):
             self.bind(ico_list[i], 'l1', l1, f'pe_in{i}')
 
         # Core 0 --> Redmule
+        #this correct? base is different in archi_redmule
         ico_list[0].add_mapping('redmule_config', base=0x40020000, remove_offset=0x40020000, size=0x200)
         self.bind(ico_list[0], 'redmule_config', redmule, 'input')
         #new addition?:

@@ -469,7 +469,7 @@ uint32_t LightRedmule::next_addr(){
     } else {
         this->trace.fatal("[LightRedmule][Address] INVALID redmule address iteration : No tiles to access\n");
     }
-
+    this->trace.msg("[LightRedmule] next addr function finished\n");
     return addr;
 }
 
@@ -893,7 +893,7 @@ void LightRedmule::offload_sync(vp::Block *__this, IssOffloadInsn<uint32_t> *ins
 vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
 {
     LightRedmule *_this = (LightRedmule *)__this;
-    _this->trace.msg("[LightRedmule] start req\n");
+    _this->trace.msg("[LightRedmule] start req; \n");
 
     uint64_t offset = req->get_addr();
     uint8_t *data = req->get_data();
@@ -901,7 +901,6 @@ vp::IoReqStatus LightRedmule::req(vp::Block *__this, vp::IoReq *req)
     bool is_write = req->get_is_write();
 
     _this->trace.msg(vp::Trace::LEVEL_TRACE,"[LightRedmule] access (offset: 0x%x, size: 0x%x, is_write: %d, data:%x)\n", offset, size, is_write, *(uint32_t *)data);
-    _this->trace.msg("[LightRedmule] access (offset: 0x%x, size: 0x%x, is_write: %d, data:%x)\n", offset, size, is_write, *(uint32_t *)data);
 
     if (is_write == 1) {
         _this->trace.msg("[LightRedmule] is_write\n");
@@ -1069,12 +1068,13 @@ vp::IoReqStatus LightRedmule::send_tcdm_req()
 {
     this->trace.msg("[LightRedmule] send_tcdm_req\n");
     return this->tcdm_itf.req(this->tcdm_req);
+    this->trace.msg("[LightRedmule] finished send_tcdm_req\n");
 }
 
 void LightRedmule::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
 {
     LightRedmule *_this = (LightRedmule *)__this;
-    _this->trace.msg("[LightRedmule] start fsm_handler\n");
+    _this->trace.msg("[LightRedmule] start fsm_handler, fsm_timestamp=%d\n", _this->fsm_timestamp);
 
     _this->fsm_timestamp += 1;
 
@@ -1096,11 +1096,11 @@ void LightRedmule::fsm_handler(vp::Block *__this, vp::ClockEvent *event)
                 //Send request
                 vp::IoReqStatus err = _this->send_tcdm_req();
                 _this->trace.msg(vp::Trace::LEVEL_TRACE,"[LightRedmule][Preload] --- Send TCDM req #%d [addr=0x%08x]\n",_this->fsm_counter,temp_addr);
-                _this->trace.msg("[LightRedmule][Preload] --- Send TCDM req #%d [addr=0x%08x]\n",_this->fsm_counter,temp_addr);
 
                 //Check error
                 if (err != vp::IO_REQ_OK) {
-                    _this->trace.fatal("[LightRedmule][Preload] There was an error while reading/writing data\n");
+                    _this->trace.msg("[LightRedmule][Error in Preload] --- m_size: %d, x_addr = %d\n",_this->m_size,_this->x_addr);
+                    _this->trace.fatal("[LightRedmule][Preload] There was an error while reading/writing data \n Send TCDM req #%d [addr=0x%08x]  --- m_size: %d, x_addr = %d\n",_this->fsm_counter,temp_addr,_this->m_size,_this->x_addr);
                     return;
                 }
 

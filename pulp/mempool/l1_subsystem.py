@@ -102,12 +102,12 @@ class L1_subsystem(gvsoc.systree.Component):
         #initialise the AMAX's with 2 masters for both local interleaver and redmule interleaver
         #I went with just 1 master for now, since the remove_offset does the same and seemingly still seperates everything
         #nope back to multiple masters again
-        AMAX_RemoteGroup = Interleaver(self, 'AMAX_RemoteGroup', nb_slaves=total_banks, nb_masters=5, 
-                                             interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
-        AMAX_RemoteSubGroup = Interleaver(self, 'AMAX_RemoteSubGroup', nb_slaves=total_banks, nb_masters=5, 
-                                             interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
-        AMAX_RemoteLocal = Interleaver(self, 'AMAX_RemoteLocal', nb_slaves=total_banks, nb_masters=2, 
-                                             interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
+        #AMAX_RemoteGroup = Interleaver(self, 'AMAX_RemoteGroup', nb_slaves=total_banks, nb_masters=5, 
+        #                                     interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
+        #AMAX_RemoteSubGroup = Interleaver(self, 'AMAX_RemoteSubGroup', nb_slaves=total_banks, nb_masters=5, 
+        #                                     interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
+        #AMAX_RemoteLocal = Interleaver(self, 'AMAX_RemoteLocal', nb_slaves=total_banks, nb_masters=5, 
+        #                                     interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
         
         remote_local_interleavers = []
         for i in range(0, nb_remote_local_masters):
@@ -126,25 +126,27 @@ class L1_subsystem(gvsoc.systree.Component):
 
         if async_l1_interco:
             # Remote group interleavers
-            remote_out_interface = MempoolXbar(self, 'remote_out_itf', latency=1, bandwidth=bandwidth, nb_input_port=nb_pe, nb_output_port=nb_remote_masters,
+            #added 1 to inputs for redmule
+            remote_out_interface = MempoolXbar(self, 'remote_out_itf', latency=1, bandwidth=bandwidth, nb_input_port=(nb_pe+1), nb_output_port=nb_remote_masters,
                                         shared_rw_bandwidth=True, max_input_pending_size=4)
-
+            
+            #added 1 to all of these for redmule addaptation
             remote_local_output_selectors = []
-            for i in range(0, nb_pe):
+            for i in range(0, nb_pe+1):
                 pe_selector_list = []
                 for j in range(0, nb_remote_local_masters):
                     pe_selector_list.append(MempoolXbarSelector(self, f'remote_local_output_selector_core{i}_out{j}', output_id=j))
                 remote_local_output_selectors.append(pe_selector_list)
 
             remote_sub_group_output_selectors = []
-            for i in range(0, nb_pe):
+            for i in range(0, nb_pe+1):
                 pe_selector_list = []
                 for j in range(0, nb_remote_sub_group_masters):
                     pe_selector_list.append(MempoolXbarSelector(self, f'remote_sub_group_output_selector_core{i}_out{j}', output_id=j + nb_remote_local_masters))
                 remote_sub_group_output_selectors.append(pe_selector_list)
 
             remote_group_output_selectors = []
-            for i in range(0, nb_pe):
+            for i in range(0, nb_pe+1):
                 pe_selector_list = []
                 for j in range(0, nb_remote_group_masters):
                     pe_selector_list.append(MempoolXbarSelector(self, f'remote_group_output_selector_core{i}_out{j}', output_id=j + nb_remote_local_masters + nb_remote_sub_group_masters))
@@ -221,15 +223,15 @@ class L1_subsystem(gvsoc.systree.Component):
         #Remote output
         if async_l1_interco:
             for i in range(0, nb_remote_local_masters):
-                for j in range(0, nb_pe):
+                for j in range(0, nb_pe+1):
                     self.bind(remote_local_output_selectors[j][i], 'output', remote_out_interface, 'input' if j == 0 else f'input_{j}')
                 self.bind(remote_out_interface, 'output', self, f'remote_local_out{i}') # only one local port, so no index offset
             for i in range(0, nb_remote_sub_group_masters):
-                for j in range(0, nb_pe):
+                for j in range(0, nb_pe+1):
                     self.bind(remote_sub_group_output_selectors[j][i], 'output', remote_out_interface, 'input' if j == 0 else f'input_{j}')
                 self.bind(remote_out_interface, f'output_{i + nb_remote_local_masters}', self, f'remote_sub_group_out{i}')
             for i in range(0, nb_remote_group_masters):
-                for j in range(0, nb_pe):
+                for j in range(0, nb_pe+1):
                     self.bind(remote_group_output_selectors[j][i], 'output', remote_out_interface, 'input' if j == 0 else f'input_{j}')
                 self.bind(remote_out_interface, f'output_{i + nb_remote_local_masters + nb_remote_sub_group_masters}', self, f'remote_group_out{i}')
         else:
@@ -273,23 +275,26 @@ class L1_subsystem(gvsoc.systree.Component):
             elif tgt_grp_id == group_id:
                 if tgt_sg_id == sub_group_id:
                     #one redmule core connected to the AMAX and then proceed with "4" tile cores in for loop:
-                    self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteLocal, 'in_0')
+                    #self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteLocal, 'in_0')
+                    self.bind(Redmule_Interleaver, 'out_%d' % i, remote_local_output_selectors[0][0] if async_l1_interco else remote_local_out_interfaces[0], 'input')
                     for j, local_interleaver in enumerate(local_interleavers):
-                        #self.bind(local_interleaver, 'out_%d' % i, remote_local_output_selectors[j][0] if async_l1_interco else remote_local_out_interfaces[0], 'input')
-                        self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteLocal, 'in_1')
-                        self.bind(AMAX_RemoteLocal, 'out_%d' % i, remote_local_output_selectors[j][0] if async_l1_interco else remote_local_out_interfaces[0], 'input')
+                        self.bind(local_interleaver, 'out_%d' % i, remote_local_output_selectors[j+1][0] if async_l1_interco else remote_local_out_interfaces[0], 'input')
+                        #self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteLocal, f'in_{j+1}')
+                        #self.bind(AMAX_RemoteLocal, 'out_%d' % i, remote_local_output_selectors[j][0] if async_l1_interco else remote_local_out_interfaces[0], 'input')
                 else:
-                    self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteSubGroup, 'in_0')
+                    #self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteSubGroup, 'in_0')
+                    self.bind(Redmule_Interleaver, 'out_%d' % i, remote_sub_group_output_selectors[0][(tgt_sg_id ^ sub_group_id) - 1] if async_l1_interco else remote_sub_group_out_interfaces[(tgt_sg_id ^ sub_group_id) - 1], 'input')
                     for j, local_interleaver in enumerate(local_interleavers):
-                        #self.bind(local_interleaver, 'out_%d' % i, remote_sub_group_output_selectors[j][(tgt_sg_id ^ sub_group_id) - 1] if async_l1_interco else remote_sub_group_out_interfaces[(tgt_sg_id ^ sub_group_id) - 1], 'input')
-                        self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteSubGroup, f'in_{j+1}')
-                        self.bind(AMAX_RemoteSubGroup, 'out_%d' % i, remote_sub_group_output_selectors[j][(tgt_sg_id ^ sub_group_id) - 1] if async_l1_interco else remote_sub_group_out_interfaces[(tgt_sg_id ^ sub_group_id) - 1], 'input')
+                        self.bind(local_interleaver, 'out_%d' % i, remote_sub_group_output_selectors[j+1][(tgt_sg_id ^ sub_group_id) - 1] if async_l1_interco else remote_sub_group_out_interfaces[(tgt_sg_id ^ sub_group_id) - 1], 'input')
+                        #self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteSubGroup, f'in_{j+1}')
+                        #self.bind(AMAX_RemoteSubGroup, 'out_%d' % i, remote_sub_group_output_selectors[j][(tgt_sg_id ^ sub_group_id) - 1] if async_l1_interco else remote_sub_group_out_interfaces[(tgt_sg_id ^ sub_group_id) - 1], 'input')
             else:
-                self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteGroup, 'in_0')
+                #self.bind(Redmule_Interleaver, 'out_%d' % i, AMAX_RemoteGroup, 'in_0')
+                self.bind(Redmule_Interleaver, 'out_%d' % i, remote_group_output_selectors[0][(tgt_grp_id ^ group_id) - 1] if async_l1_interco else remote_group_out_interfaces[(tgt_grp_id ^ group_id) - 1], 'input')
                 for j, local_interleaver in enumerate(local_interleavers):
-                    #self.bind(local_interleaver, 'out_%d' % i, remote_group_output_selectors[j][(tgt_grp_id ^ group_id) - 1] if async_l1_interco else remote_group_out_interfaces[(tgt_grp_id ^ group_id) - 1], 'input')
-                    self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteGroup, f'in_{j+1}')
-                    self.bind(AMAX_RemoteGroup, 'out_%d' % i, remote_group_output_selectors[j][(tgt_grp_id ^ group_id) - 1] if async_l1_interco else remote_group_out_interfaces[(tgt_grp_id ^ group_id) - 1], 'input')
+                    self.bind(local_interleaver, 'out_%d' % i, remote_group_output_selectors[j+1][(tgt_grp_id ^ group_id) - 1] if async_l1_interco else remote_group_out_interfaces[(tgt_grp_id ^ group_id) - 1], 'input')
+                    #self.bind(local_interleaver, 'out_%d' % i, AMAX_RemoteGroup, f'in_{j+1}')
+                    #self.bind(AMAX_RemoteGroup, 'out_%d' % i, remote_group_output_selectors[j][(tgt_grp_id ^ group_id) - 1] if async_l1_interco else remote_group_out_interfaces[(tgt_grp_id ^ group_id) - 1], 'input')
                     
 
     def i_DMA_INPUT(self) -> gvsoc.systree.SlaveItf:
