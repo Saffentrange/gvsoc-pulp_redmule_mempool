@@ -98,15 +98,6 @@ class L1_subsystem(gvsoc.systree.Component):
         #if i add anything, it would be just one local interleaver more for each redmule, then one more interleaver each for G, SG, RLC
         Redmule_Interleaver = Interleaver(self, 'redmule_interleaver', nb_slaves=total_banks, nb_masters=1, 
                                              interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
-        #initialise the AMAX's with 2 masters for both local interleaver and redmule interleaver
-        #I went with just 1 master for now, since the remove_offset does the same and seemingly still seperates everything
-        #nope back to multiple masters again
-        #AMAX_RemoteGroup = Interleaver(self, 'AMAX_RemoteGroup', nb_slaves=total_banks, nb_masters=5, 
-        #                                     interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
-        #AMAX_RemoteSubGroup = Interleaver(self, 'AMAX_RemoteSubGroup', nb_slaves=total_banks, nb_masters=5, 
-        #                                     interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
-        #AMAX_RemoteLocal = Interleaver(self, 'AMAX_RemoteLocal', nb_slaves=total_banks, nb_masters=5, 
-        #                                     interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
         
         remote_local_interleavers = []
         for i in range(0, nb_remote_local_masters):
@@ -127,7 +118,7 @@ class L1_subsystem(gvsoc.systree.Component):
             # Remote group interleavers
             #added 1 to inputs for redmule
             remote_out_interface = MempoolXbar(self, 'remote_out_itf', latency=1, bandwidth=bandwidth, nb_input_port=(nb_pe+1), nb_output_port=nb_remote_masters,
-                                        shared_rw_bandwidth=True, max_input_pending_size=4)
+                                        shared_rw_bandwidth=True, max_input_pending_size=5)
             
             #added 1 to all of these for redmule addaptation
             remote_local_output_selectors = []
