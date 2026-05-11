@@ -52,7 +52,6 @@ class LightRedmule(gvsoc.systree.Component):
             'fold_tiles_mapping': fold_tiles_mapping,
             'loc_base'          : loc_base,
         })
-    #connected input already
     def i_INPUT(self) -> gvsoc.systree.SlaveItf:
         return gvsoc.systree.SlaveItf(self, 'input', signature='io')
 

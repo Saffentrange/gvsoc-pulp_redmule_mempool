@@ -95,9 +95,13 @@ class L1_subsystem(gvsoc.systree.Component):
         for i in range(0, nb_pe):
             local_interleavers.append(Interleaver(self, f'local_interleaver{i}', nb_slaves=total_banks, nb_masters=1, 
                                              interleaving_bits=int(math.log2(bandwidth)), offset_translation=False))
-        #if i add anything, it would be just one local interleaver more for each redmule, then one more interleaver each for G, SG, RLC
         redmule_interleaver = Interleaver(self, 'redmule_interleaver', nb_slaves=total_banks, nb_masters=1, 
                                              interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
+        #add 16 interleavers for redmule
+        #redmule_interleavers = []
+        #for i in range(0, 16):
+        #    redmule_interleavers.append = Interleaver(self, f'redmule_interleaver{i}', nb_slaves=total_banks, nb_masters=1, 
+        #                                     interleaving_bits=int(math.log2(bandwidth)), offset_translation=False)
         
         remote_local_interleavers = []
         for i in range(0, nb_remote_local_masters):

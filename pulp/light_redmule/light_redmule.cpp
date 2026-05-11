@@ -238,6 +238,7 @@ LightRedmule::LightRedmule(vp::ComponentConf &config)
     this->traces.new_trace("trace", &this->trace, vp::DEBUG);
     this->input_itf.set_req_meth(&LightRedmule::req);
     this->new_slave_port("input", &this->input_itf);
+    //add more interfaces here
     this->new_master_port("tcdm", &this->tcdm_itf);
     this->tcdm_itf.set_resp_meth(&LightRedmule::tcdm_response);
     this->tcdm_itf.set_grant_meth(&LightRedmule::tcdm_grant);
